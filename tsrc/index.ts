@@ -59,8 +59,8 @@ const GameClientLobbyPayloadStaticSchema = {
       required: true,
     },
     mapSpeed: { type: String, length: { min: 4, max: 32 }, required: true },
-    mapName: { type: String, length: { min: 2, max: 32 }, required: true },
-    mapPath: { type: String, length: { min: 4, max: 64 }, required: true },
+    mapName: { type: String, length: { min: 2, max: 48 }, required: true },
+    mapPath: { type: String, length: { min: 4, max: 127 }, required: true },
     mapAuthor: { type: String, length: { min: 1, max: 32 }, required: true },
     description: { type: String, length: { min: 1, max: 255 }, required: true },
     suggested_players: { type: String, length: { min: 1, max: 32 }, required: true },
@@ -498,7 +498,7 @@ export class MicroLobby {
       returnName = "Footmen Vs Grunts";
     } else if (mapName.match(/Broken.*Alliances/i)) {
       returnName = "Broken Alliances";
-    } else if (mapName.match(/Reforged.*Footmen.*Frenzy/i)) {
+    } else if (mapName.match(/Reforged.*Footmen/i)) {
       returnName = "Reforged Footmen Frenzy";
     } else if (mapName.match(/Direct.*Strike.*Reforged/i)) {
       returnName = "Direct Strike";
