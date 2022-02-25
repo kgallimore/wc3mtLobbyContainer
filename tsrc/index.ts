@@ -112,16 +112,21 @@ export class MicroLobby {
   lobbyStatic: MicroLobbyData["lobbyStatic"];
   teamListLookup: MicroLobbyData["teamListLookup"] = {};
   chatMessages: MicroLobbyData["chatMessages"] = [];
-  playerData: MicroLobbyData["playerData"] = {};
+  #playerData: MicroLobbyData["playerData"] = {};
   allPlayers: Array<string> = [];
   nonSpecPlayers: Array<string> = [];
   statsAvailable: boolean = false;
+  log: boolean = true;
 
-  constructor(data: {
-    region?: Regions;
-    payload?: GameClientLobbyPayload;
-    fullData?: MicroLobbyData;
-  }) {
+  constructor(
+    data: {
+      region?: Regions;
+      payload?: GameClientLobbyPayload;
+      fullData?: MicroLobbyData;
+    },
+    log: boolean = true
+  ) {
+    this.log = log;
     if (data.payload) {
       // Check the region
       if (!data.region || !["us", "eu", "usw"].includes(data.region)) {
@@ -179,7 +184,7 @@ export class MicroLobby {
         data.payload.players.forEach((newPlayer) => {
           this.slots[newPlayer.slot] = newPlayer;
           if (newPlayer.playerRegion || newPlayer.isSelf) {
-            this.playerData[newPlayer.name] = {
+            this.#playerData[newPlayer.name] = {
               joinedAt: Date.now(),
             };
           }
@@ -265,7 +270,7 @@ export class MicroLobby {
       this.slots = data.fullData.slots;
       this.teamListLookup = data.fullData.teamListLookup;
       this.chatMessages = data.fullData.chatMessages;
-      this.playerData = data.fullData.playerData;
+      this.#playerData = data.fullData.playerData;
       this.ingestUpdate({ playerPayload: Object.values(data.fullData.slots) });
     } else {
       throw new Error("Missing New Lobby data.");
@@ -298,7 +303,10 @@ export class MicroLobby {
         return;
       }
       if (JSON.stringify(this.slots[player.slot]) !== JSON.stringify(player)) {
-        if ((player.playerRegion && player.name) || !player.playerRegion) {
+        if (
+          ((player.playerRegion || player.isSelf) && player.name) ||
+          !player.playerRegion
+        ) {
           playerUpdates.push(player);
         }
       }
@@ -307,7 +315,7 @@ export class MicroLobby {
       events = this.ingestUpdate({ playerPayload: playerUpdates });
       return { playerUpdates, events };
     } else {
-      console.log("No player updates");
+      if (this.log) console.log("No player updates");
       return { playerUpdates, events };
     }
   }
@@ -346,25 +354,61 @@ export class MicroLobby {
         }
         if (this.slots[newPayload.slot] && this.slots[newPayload.slot] !== newPayload) {
           isUpdated = true;
-          this.slots[newPayload.slot] = newPayload;
+          if (newPayload.playerRegion) {
+            if (
+              !this.allPlayers.includes(newPayload.name) &&
+              !this.#playerData[newPayload.name]
+            ) {
+              if (this.log) console.log("New Player: " + newPayload.name);
+              events.push({ playerJoined: newPayload });
+              this.#playerData[newPayload.name] = {
+                joinedAt: Date.now(),
+              };
+            } else if (this.slots[newPayload.slot].playerRegion) {
+              if (events.filter((event) => event.playersSwapped).length === 0) {
+                if (this.log)
+                  console.log(
+                    "Players swapped: ",
+                    newPayload.name,
+                    this.slots[newPayload.slot].name,
+                    " Slots: ",
+                    newPayload.slot,
+                    this.playerToSlot(newPayload.name)
+                  );
+                events.push({
+                  playersSwapped: {
+                    slots: [newPayload.slot, this.playerToSlot(newPayload.name)],
+                    players: [newPayload.name, this.slots[newPayload.slot].name],
+                  },
+                });
+              }
+            } else {
+              console.log("Player Moved: ", {
+                from: this.playerToSlot(newPayload.name),
+                to: newPayload.slot,
+                name: newPayload.name,
+              });
+              events.push({
+                playerMoved: {
+                  from: this.playerToSlot(newPayload.name),
+                  to: newPayload.slot,
+                  name: newPayload.name,
+                },
+              });
+            }
+          }
         }
       }
-      for (const slot of Object.values(this.slots)) {
-        if (slot.playerRegion && !this.allPlayers.includes(slot.name)) {
-          isUpdated = true;
-          console.log("New Player: " + slot.name);
-          events.push({ playerJoined: slot });
-          this.playerData[slot.name] = {
-            joinedAt: Date.now(),
-          };
-        }
+      for (const newPayload of update.playerPayload) {
+        this.slots[newPayload.slot] = newPayload;
       }
+      // TODO: The leave function need to be checked.
       for (const player of this.allPlayers) {
         if (!this.getAllPlayers(true).includes(player)) {
           isUpdated = true;
-          console.log("Player left", player);
+          if (this.log) console.log("Player left: " + player);
           events.push({ playerLeft: player });
-          delete this.playerData[player];
+          delete this.#playerData[player];
         }
       }
       this.allPlayers = this.getAllPlayers(true);
@@ -381,18 +425,19 @@ export class MicroLobby {
             );
           });
         } else {
-          if (this.playerData[update.playerData.name]) {
+          if (this.#playerData[update.playerData.name]) {
             isUpdated =
-              JSON.stringify(this.playerData[update.playerData.name].extra) !==
+              JSON.stringify(this.#playerData[update.playerData.name].extra) !==
               JSON.stringify(update.playerData.extraData);
-            this.playerData[update.playerData.name].extra = update.playerData.extraData;
+            this.#playerData[update.playerData.name].extra = update.playerData.extraData;
           } else if (this.getAllPlayers(true).includes(update.playerData.name)) {
-            console.warn(
-              "Player Data Update for non-existent player, but they are in lobby: " +
-                update.playerData.name
-            );
+            if (this.log)
+              console.warn(
+                "Player Data Update for non-existent player, but they are in lobby: " +
+                  update.playerData.name
+              );
             isUpdated = true;
-            this.playerData[update.playerData.name] = {
+            this.#playerData[update.playerData.name] = {
               joinedAt: Date.now(),
               extra: update.playerData.extraData,
             };
@@ -401,6 +446,12 @@ export class MicroLobby {
       }
     }
     return { isUpdated, events };
+  }
+
+  getAllPlayerData(): {
+    [key: string]: PlayerData;
+  } {
+    return this.#playerData;
   }
 
   getAllPlayers(includeNonPlayerTeams: boolean = false): Array<string> {
@@ -450,7 +501,7 @@ export class MicroLobby {
             slotStatus: player.slotStatus,
             slot: this.playerToSlot(player.name),
             data:
-              this.playerData[player.name] ??
+              this.#playerData[player.name] ??
               (player.playerRegion !== ""
                 ? {
                     joinedAt: Date.now(),
@@ -469,7 +520,7 @@ export class MicroLobby {
       slots: this.slots,
       teamListLookup: this.teamListLookup,
       chatMessages: this.chatMessages,
-      playerData: this.playerData,
+      playerData: this.#playerData,
     };
   }
 
@@ -523,6 +574,7 @@ export class MicroLobby {
     if (slot) {
       return slot.slot;
     } else {
+      console.log(this.slots);
       console.warn("Player not found in slot list: " + player);
       return -1;
     }
@@ -700,7 +752,12 @@ export interface LobbyUpdates {
   slotOpened?: number;
   slotClosed?: number;
   stale?: true;
-  playerMoved?: { from: number; to: number };
+  playerMoved?: {
+    from: number;
+    to: number;
+    name: string;
+  };
+  playersSwapped?: { players: [string, string]; slots: [number, number] };
   playerLeft?: string;
   playerJoined?: PlayerPayload;
   playerPayload?: Array<PlayerPayload>;
