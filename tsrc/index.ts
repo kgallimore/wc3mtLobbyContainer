@@ -527,8 +527,12 @@ export class MicroLobby {
     };
   }
 
-  getSelf(): string {
+  getSelf(): string | "" {
     return Object.values(this.slots).find((slot) => slot.isSelf)?.name ?? "";
+  }
+
+  getSelfSlot(): number | false {
+    return Object.values(this.slots).find((slot) => slot.isSelf)?.slot ?? false;
   }
 
   cleanPathName(path: string): string {
