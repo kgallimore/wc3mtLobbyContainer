@@ -377,7 +377,10 @@ export class MicroLobby {
                   );
                 events.push({
                   playersSwapped: {
-                    slots: [newPayload.slot, this.playerToSlot(newPayload.name)],
+                    slots: [
+                      newPayload.slot,
+                      this.playerToSlot(newPayload.name) as SlotNumbers,
+                    ],
                     players: [newPayload.name, this.slots[newPayload.slot].name],
                   },
                 });
@@ -569,7 +572,7 @@ export class MicroLobby {
     return { statsAvailable: newStats, mapName: returnName };
   }
 
-  playerToSlot(player: string): number {
+  playerToSlot(player: string): SlotNumbers | -1 {
     let slot = Object.values(this.slots).find((slot) => slot.name === player);
     if (slot) {
       return slot.slot;
@@ -757,7 +760,7 @@ export interface LobbyUpdates {
     to: number;
     name: string;
   };
-  playersSwapped?: { players: [string, string]; slots: [number, number] };
+  playersSwapped?: { players: [string, string]; slots: [SlotNumbers, SlotNumbers] };
   playerLeft?: string;
   playerJoined?: PlayerPayload;
   playerPayload?: Array<PlayerPayload>;
