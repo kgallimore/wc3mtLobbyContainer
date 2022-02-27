@@ -12,6 +12,10 @@ export const ChatMessageSchema = new Schema({
   time: { type: Number, length: { min: 0, max: Number.MAX_SAFE_INTEGER } },
 });
 
+export const ChatMessageArraySchema = new Schema({
+  messages: { type: Array, each: ChatMessageSchema },
+});
+
 export const ExtraDataSchema = new Schema({
   played: Number,
   wins: Number,
@@ -133,7 +137,9 @@ export class MicroLobby {
         throw new Error("Invalid region");
       }
       // Check all the static data
-      const dataTest = GameClientLobbyPayloadSchema.validate(data.payload);
+      const dataTest = GameClientLobbyPayloadSchema.validate(data.payload, {
+        strict: true,
+      });
       if (dataTest.length > 0) {
         dataTest.forEach((error) => {
           console.error(
@@ -158,7 +164,8 @@ export class MicroLobby {
             if (players.filter((player) => player.isObserver).length > 0) {
               teamType = "specTeams";
             } else if (
-              players.filter((player) => player.slotTypeChangeEnabled).length === 0
+              players.filter((player) => player.slotTypeChangeEnabled || player.isSelf)
+                .length === 0
             ) {
               teamType = "otherTeams";
             } else if (this.testTeam(teamName) === "specTeams") {
@@ -206,7 +213,8 @@ export class MicroLobby {
       }
       // Check the static data
       let dataTest = new Schema(GameClientLobbyPayloadStaticSchema).validate(
-        data.fullData.lobbyStatic
+        data.fullData.lobbyStatic,
+        { strict: true, strip: false }
       );
       // Finish checking slots
       Object.entries(data.fullData.slots).forEach(([slotNum, slotData]) => {
@@ -217,10 +225,25 @@ export class MicroLobby {
         ) {
           throw new Error("Invalid Data: Slots Invalid Slot Number: " + slotNum);
         }
-        dataTest.concat(PlayerPayloadSchema.validate(slotData));
+        dataTest.concat(
+          PlayerPayloadSchema.validate(slotData, { strict: true, strip: false })
+        );
       });
       // Check chat messages
-      dataTest.concat(ChatMessageSchema.validate(data.fullData.chatMessages));
+      if (Array.isArray(data.fullData.chatMessages)) {
+        data.fullData.chatMessages.forEach((message) => {
+          let copyMessage = JSON.stringify(message);
+          dataTest.concat(
+            ChatMessageSchema.validate(message, { strict: true, strip: false })
+          );
+          if (copyMessage !== JSON.stringify(message)) {
+            throw new Error("Invalid Data: Message Invalid: " + message);
+          }
+          console.log(copyMessage, message);
+        });
+      } else {
+        throw new Error("Invalid Data: Chat Messages Invalid type or missing.");
+      }
       // Check teamListLookup
       Object.entries(data.fullData.teamListLookup).forEach(([teamNum, teamData]) => {
         if (
@@ -238,7 +261,7 @@ export class MicroLobby {
               required: true,
             },
             name: { type: String, length: { min: 0, max: 32 }, required: true },
-          }).validate(teamData)
+          }).validate(teamData, { strict: true, strip: false })
         );
       });
       //Check PlayerData
@@ -250,7 +273,7 @@ export class MicroLobby {
           new Schema({
             joinedAt: { type: Number, required: true },
             extra: ExtraDataSchema,
-          }).validate(playerData)
+          }).validate(playerData, { strict: true, strip: false })
         );
       });
       if (dataTest.length > 0) {
@@ -298,7 +321,9 @@ export class MicroLobby {
       events: LobbyUpdates[];
     } = { isUpdated: false, events: [] };
     slots.forEach((player: PlayerPayload) => {
-      if (PlayerPayloadSchema.validate(player).length > 0) {
+      if (
+        PlayerPayloadSchema.validate(player, { strict: true, strip: false }).length > 0
+      ) {
         console.warn("Invalid Player Payload: ", player);
         return;
       }
@@ -327,7 +352,10 @@ export class MicroLobby {
     let isUpdated = false;
     let events: Array<LobbyUpdates> = [];
     if (update.chatMessage) {
-      let dataTest = ChatMessageSchema.validate(update.chatMessage);
+      let dataTest = ChatMessageSchema.validate(update.chatMessage, {
+        strict: true,
+        strip: false,
+      });
       if (dataTest.length > 0) {
         dataTest.forEach((error) => {
           console.error(
@@ -341,7 +369,10 @@ export class MicroLobby {
       }
     } else if (update.playerPayload) {
       for (const newPayload of update.playerPayload) {
-        let dataTest = PlayerPayloadSchema.validate(newPayload);
+        let dataTest = PlayerPayloadSchema.validate(newPayload, {
+          strict: true,
+          strip: false,
+        });
         if (dataTest.length > 0) {
           dataTest.forEach((error) => {
             console.error(
@@ -418,7 +449,9 @@ export class MicroLobby {
       this.nonSpecPlayers = this.getAllPlayers(false);
     } else if (update.playerData) {
       if (update.playerData.extraData) {
-        let dataTest = ExtraDataSchema.validate(update.playerData.extraData);
+        let dataTest = ExtraDataSchema.validate(update.playerData.extraData, {
+          strict: true,
+        });
         if (dataTest.length > 0) {
           dataTest.forEach((error) => {
             console.error(
@@ -594,19 +627,15 @@ export class MicroLobby {
   }
 
   testTeam(teamName: string): "otherTeams" | "playerTeams" | "specTeams" {
-    if (teamName.match(/((computer)|(creeps)|(summoned))/i)) {
+    if (!teamName) {
+      return "playerTeams";
+    } else if (teamName.match(/((computer)|(creeps)|(summoned))/i)) {
       return "otherTeams";
     } else if (teamName.match(/((host)|(spectator)|(observer)|(referee))/i)) {
       return "specTeams";
     }
     return "playerTeams";
   }
-}
-
-type ValidObjectTypes = "boolean" | "object" | "string" | "number";
-
-interface ObjectLookup {
-  [key: string]: ValidObjectTypes | ObjectLookup | Array<any>;
 }
 
 export type Regions = "us" | "eu";
