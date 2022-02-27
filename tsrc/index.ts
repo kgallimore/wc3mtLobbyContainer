@@ -2,7 +2,7 @@ import Schema from "validate";
 
 const ZeroArraySchema = { type: Number, size: { min: 0, max: 24 }, required: true };
 const OneArraySchema = { type: Number, size: { min: 1, max: 25 }, required: true };
-
+const OneArraySchemaNotRequired = { type: Number, size: { min: 1, max: 25 } };
 export const BattleTagRegex =
   /(^([A-zÀ-ú][A-zÀ-ú0-9]{2,11})|(^([а-яёА-ЯЁÀ-ú][а-яёА-ЯЁ0-9À-ú]{2,11})))(#[0-9]{4,8})$/;
 
@@ -91,10 +91,10 @@ export const GameClientLobbyPayloadSchema = new Schema({
   teamData: {
     teams: [
       {
-        name: { type: String, length: { min: 1, max: 32 }, required: true },
+        name: { type: String, length: { min: 1, max: 32 } },
         team: ZeroArraySchema,
         filledSlots: ZeroArraySchema,
-        totalSlots: OneArraySchema,
+        totalSlots: OneArraySchemaNotRequired,
       },
     ],
     playableSlots: ZeroArraySchema,
@@ -484,12 +484,14 @@ export class MicroLobby {
 
   exportTeamStructure(playerTeamsOnly: boolean = true): PlayerTeamsData {
     let returnValue: PlayerTeamsData = {};
-    let targetTeams = Object.entries(this.teamListLookup)
+    let targetTeams: Array<[string, string | undefined]> = Object.entries(
+      this.teamListLookup
+    )
       .filter((team) => (playerTeamsOnly ? team[1].type === "playerTeams" : true))
       .map((team) => [team[0], team[1].name]);
     targetTeams.forEach(([teamNum, teamName]) => {
       let teamNumber = parseInt(teamNum);
-      returnValue[teamName] = Object.values(this.slots)
+      returnValue[teamName ?? teamNumber] = Object.values(this.slots)
         .filter((player) => teamNumber === player.team)
         .map((player) => {
           let name =
@@ -728,7 +730,12 @@ export interface GameClientLobbyPayloadStatic {
 
 export interface GameClientLobbyPayload extends GameClientLobbyPayloadStatic {
   teamData: {
-    teams: Array<{ name: string; team: number; filledSlots: number; totalSlots: number }>;
+    teams: Array<{
+      name: string;
+      team: number;
+      filledSlots: number;
+      totalSlots?: number;
+    }>;
     playableSlots: number;
     filledPlayableSlots: number;
     observerSlotsRemaining: number;
@@ -744,7 +751,7 @@ export interface MicroLobbyData {
   region: Regions;
   slots: { [key: string]: PlayerPayload };
   teamListLookup: {
-    [key: string]: { type: TeamTypes; name: string };
+    [key: string]: { type: TeamTypes; name?: string };
   };
   chatMessages: Array<ChatMessage>;
   playerData: {
