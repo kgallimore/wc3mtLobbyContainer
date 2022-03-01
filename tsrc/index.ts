@@ -1,6 +1,7 @@
 import Schema from "validate";
 
 const ZeroArraySchema = { type: Number, size: { min: 0, max: 24 }, required: true };
+const ZeroArraySchemaNotRequired = { type: Number, size: { min: 0, max: 24 } };
 const OneArraySchema = { type: Number, size: { min: 1, max: 25 }, required: true };
 const OneArraySchemaNotRequired = { type: Number, size: { min: 1, max: 25 } };
 export const BattleTagRegex =
@@ -89,6 +90,34 @@ const GameClientLobbyPayloadStaticSchema = {
     },
     typeVisibility: { type: Number, size: { min: 0, max: 3 }, required: true },
   },
+  // TODO: make tidy
+  availableTeamColors: {
+    "0": [ZeroArraySchemaNotRequired],
+    "1": [ZeroArraySchemaNotRequired],
+    "2": [ZeroArraySchemaNotRequired],
+    "3": [ZeroArraySchemaNotRequired],
+    "4": [ZeroArraySchemaNotRequired],
+    "5": [ZeroArraySchemaNotRequired],
+    "6": [ZeroArraySchemaNotRequired],
+    "7": [ZeroArraySchemaNotRequired],
+    "8": [ZeroArraySchemaNotRequired],
+    "9": [ZeroArraySchemaNotRequired],
+    "10": [ZeroArraySchemaNotRequired],
+    "11": [ZeroArraySchemaNotRequired],
+    "12": [ZeroArraySchemaNotRequired],
+    "13": [ZeroArraySchemaNotRequired],
+    "14": [ZeroArraySchemaNotRequired],
+    "15": [ZeroArraySchemaNotRequired],
+    "16": [ZeroArraySchemaNotRequired],
+    "17": [ZeroArraySchemaNotRequired],
+    "18": [ZeroArraySchemaNotRequired],
+    "19": [ZeroArraySchemaNotRequired],
+    "20": [ZeroArraySchemaNotRequired],
+    "21": [ZeroArraySchemaNotRequired],
+    "22": [ZeroArraySchemaNotRequired],
+    "23": [ZeroArraySchemaNotRequired],
+    "24": [ZeroArraySchemaNotRequired],
+  },
 };
 
 export const GameClientLobbyPayloadSchema = new Schema({
@@ -98,7 +127,7 @@ export const GameClientLobbyPayloadSchema = new Schema({
         name: { type: String, length: { min: 1, max: 32 } },
         team: ZeroArraySchema,
         filledSlots: ZeroArraySchema,
-        totalSlots: OneArraySchemaNotRequired,
+        totalSlots: ZeroArraySchemaNotRequired,
       },
     ],
     playableSlots: ZeroArraySchema,
