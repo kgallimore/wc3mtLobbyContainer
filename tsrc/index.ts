@@ -134,6 +134,12 @@ export const GameClientLobbyPayloadSchema = new Schema({
     filledPlayableSlots: OneArraySchema,
     observerSlotsRemaining: ZeroArraySchema,
   },
+  availableColors: {
+    type: Array,
+    each: { type: Number, enum: [0, 1] },
+    size: { min: 0, max: 25 },
+    required: false,
+  },
   players: [PlayerPayloadSchema],
   ...GameClientLobbyPayloadStaticSchema,
 });
@@ -177,7 +183,9 @@ export class MicroLobby {
             error.message
           );
         });
-        throw new Error("Invalid Data: " + Object.entries(dataTest[0]).join(", "));
+        throw new Error(
+          "Invalid Data: " + Object.entries(JSON.stringify(dataTest[0])).join(", ")
+        );
       }
       if (Object.values(data.payload.players).find((slot) => slot.isSelf) !== undefined) {
         let { teamData, availableTeamColors, players, ...lobbyStatic } = data.payload;
@@ -667,7 +675,7 @@ export class MicroLobby {
   }
 }
 
-export type Regions = "us" | "eu";
+export type Regions = "us" | "eu" | "usw";
 
 export type TeamTypes = "otherTeams" | "specTeams" | "playerTeams";
 
