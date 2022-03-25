@@ -1,6 +1,6 @@
 {
   "name": "wc3mt-lobby-container",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "A container to hold data for Warcraft 3 Lobbies",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
