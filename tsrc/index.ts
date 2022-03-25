@@ -90,6 +90,12 @@ const GameClientLobbyPayloadStaticSchema = {
     },
     typeVisibility: { type: Number, size: { min: 0, max: 3 }, required: true },
   },
+  availableColors: {
+    type: Array,
+    each: { type: Number, enum: [0, 1] },
+    size: { min: 0, max: 25 },
+    required: false,
+  },
   // TODO: make tidy
   availableTeamColors: {
     "0": [ZeroArraySchemaNotRequired],
@@ -133,12 +139,6 @@ export const GameClientLobbyPayloadSchema = new Schema({
     playableSlots: ZeroArraySchema,
     filledPlayableSlots: OneArraySchema,
     observerSlotsRemaining: ZeroArraySchema,
-  },
-  availableColors: {
-    type: Array,
-    each: { type: Number, enum: [0, 1] },
-    size: { min: 0, max: 25 },
-    required: false,
   },
   players: [PlayerPayloadSchema],
   ...GameClientLobbyPayloadStaticSchema,
@@ -188,7 +188,8 @@ export class MicroLobby {
         );
       }
       if (Object.values(data.payload.players).find((slot) => slot.isSelf) !== undefined) {
-        let { teamData, availableTeamColors, players, ...lobbyStatic } = data.payload;
+        let { teamData, availableTeamColors, players, availableColors, ...lobbyStatic } =
+          data.payload;
         this.lobbyStatic = lobbyStatic;
         this.region = data.region;
         for (const team of data.payload.teamData.teams) {
@@ -792,6 +793,7 @@ export interface GameClientLobbyPayloadStatic {
     settingVisibility: "Default" | "Hide Terrain" | "Map Explored" | "Always Visible";
     typeVisibility: 0 | 1 | 2 | 3;
   };
+  availableColors?: Array<0 | 1>;
 }
 
 export interface GameClientLobbyPayload extends GameClientLobbyPayloadStatic {
