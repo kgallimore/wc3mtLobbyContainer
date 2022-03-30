@@ -67,7 +67,7 @@ const GameClientLobbyPayloadStaticSchema = {
     mapName: { type: String, length: { min: 2, max: 48 }, required: true },
     mapPath: { type: String, length: { min: 4, max: 127 }, required: true },
     mapAuthor: { type: String, length: { min: 1, max: 32 }, required: true },
-    description: { type: String, length: { min: 1, max: 255 }, required: true },
+    description: { type: String, length: { min: 0, max: 512 }, required: true },
     suggested_players: { type: String, length: { min: 1, max: 32 }, required: true },
   },
   lobbyName: { type: String, length: { min: 1, max: 32 }, required: true },
@@ -645,7 +645,6 @@ export class MicroLobby {
       newStats = false;
       returnName = mapName.trim().replace(/\s*v?\.?(\d+\.)?(\*|\d+)\w*\s*$/gi, "");
     }
-    this.statsAvailable = newStats;
     return { statsAvailable: newStats, mapName: returnName };
   }
 
