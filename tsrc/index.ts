@@ -67,7 +67,7 @@ const GameClientLobbyPayloadStaticSchema = {
     mapName: { type: String, length: { min: 2, max: 36 }, required: true },
     mapPath: { type: String, length: { min: 4, max: 127 }, required: true },
     mapAuthor: { type: String, length: { min: 1, max: 32 }, required: true },
-    description: { type: String, length: { min: 1, max: 256 }, required: true },
+    description: { type: String, length: { min: 0, max: 256 }, required: false },
     suggested_players: { type: String, length: { min: 1, max: 32 }, required: true },
   },
   lobbyName: { type: String, length: { min: 1, max: 32 }, required: true },
@@ -231,6 +231,7 @@ export class MicroLobby {
           if (newPlayer.playerRegion || newPlayer.isSelf) {
             this.#playerData[newPlayer.name] = {
               joinedAt: Date.now(),
+              cleared: false,
             };
           }
         });
@@ -310,6 +311,7 @@ export class MicroLobby {
         dataTest.concat(
           new Schema({
             joinedAt: { type: Number, required: true },
+            cleared: { type: Boolean, required: true },
             extra: ExtraDataSchema,
           }).validate(playerData, { strict: true, strip: false })
         );
@@ -432,6 +434,7 @@ export class MicroLobby {
               events.push({ playerJoined: newPayload });
               this.#playerData[newPayload.name] = {
                 joinedAt: Date.now(),
+                cleared: false,
               };
             } else if (this.slots[newPayload.slot].playerRegion) {
               if (events.filter((event) => event.playersSwapped).length === 0) {
@@ -485,8 +488,7 @@ export class MicroLobby {
       }
       this.allPlayers = this.getAllPlayers(true);
       this.nonSpecPlayers = this.getAllPlayers(false);
-    } else if (update.playerData) {
-      if (update.playerData.extraData) {
+      if (update.playerData?.extraData) {
         let dataTest = ExtraDataSchema.validate(update.playerData.extraData, {
           strict: true,
         });
@@ -513,8 +515,26 @@ export class MicroLobby {
             isUpdated = true;
             this.#playerData[update.playerData.name] = {
               joinedAt: Date.now(),
+              cleared: false,
               extra: update.playerData.extraData,
             };
+          }
+        }
+      }
+    } else if (update.playerData) {
+      if (this.#playerData[update.playerData.name]) {
+        if (update.playerData.extraData) {
+          this.#playerData[update.playerData.name].extra = update.playerData.extraData;
+          events.push(update);
+          isUpdated = true;
+        }
+        if (update.playerData.data) {
+          for (const [key, value] of Object.entries(update.playerData.data)) {
+            // @ts-ignore-error I can't be bothered to type this for now.
+            if (this.#playerData[update.playerData.name][key] !== undefined) {
+              // @ts-ignore-error
+              this.#playerData[update.playerData.name][key] = value;
+            }
           }
         }
       }
@@ -581,6 +601,8 @@ export class MicroLobby {
               (player.playerRegion !== ""
                 ? {
                     joinedAt: Date.now(),
+                    // TODO: Is this false
+                    cleared: false,
                   }
                 : -1),
           };
@@ -641,6 +663,8 @@ export class MicroLobby {
       returnName = "Tree Tag";
     } else if (mapName.match(/Battleships.*Crossfire/i)) {
       returnName = "Battleships Crossfire";
+    } else if (mapName.match(/Risk.*Europe/i)) {
+      returnName = "Risk Europe";
     } else {
       newStats = false;
       returnName = mapName.trim().replace(/\s*v?\.?(\d+\.)?(\*|\d+)\w*\s*$/gi, "");
@@ -713,6 +737,7 @@ export interface ChatMessage {
 
 export interface PlayerData {
   joinedAt: number;
+  cleared: boolean;
   extra?: {
     played: number;
     wins: number;
@@ -827,7 +852,6 @@ export interface MicroLobbyData {
 }
 
 export interface LobbyUpdates {
-  lobbyReady?: true;
   leftLobby?: true;
   newLobby?: MicroLobbyData;
   slotOpened?: number;
@@ -842,6 +866,10 @@ export interface LobbyUpdates {
   playerLeft?: string;
   playerJoined?: PlayerPayload;
   playerPayload?: Array<PlayerPayload>;
-  playerData?: { name: string; data?: PlayerData; extraData?: PlayerData["extra"] };
+  playerData?: {
+    name: string;
+    data?: Partial<PlayerData>;
+    extraData?: PlayerData["extra"];
+  };
   chatMessage?: { name: string; message: string };
 }
