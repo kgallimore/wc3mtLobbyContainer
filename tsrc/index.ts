@@ -534,6 +534,7 @@ export class MicroLobby {
             if (this.#playerData[update.playerData.name][key] !== undefined) {
               // @ts-ignore-error
               this.#playerData[update.playerData.name][key] = value;
+              isUpdated = true;
             }
           }
         }
