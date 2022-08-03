@@ -18,12 +18,12 @@ export const ChatMessageArraySchema = new Schema({
 });
 
 export const ExtraDataSchema = new Schema({
-  played: Number,
-  wins: Number,
-  losses: Number,
-  rating: Number,
-  lastChange: Number,
-  rank: Number,
+  played: { type: Number, size: { min: -1 }, required: true },
+  wins: { type: Number, size: { min: -1 }, required: true },
+  losses: { type: Number, size: { min: -1 }, required: true },
+  rating: { type: Number, required: true },
+  lastChange: { type: Number, required: true },
+  rank: { type: Number, size: { min: 1 }, required: true },
 });
 
 export const PlayerPayloadSchema = new Schema({
@@ -162,6 +162,7 @@ export class MicroLobby {
       region?: Regions;
       payload?: GameClientLobbyPayload;
       fullData?: MicroLobbyData;
+      statsAvailableOverride?: boolean;
     },
     log: boolean = true
   ) {
@@ -328,6 +329,11 @@ export class MicroLobby {
           "Invalid New Lobby Full Data: " + Object.entries(dataTest[0]).join(", ")
         );
       }
+      data.fullData.statsAvailable = data.fullData.statsAvailable ?? false;
+      if (typeof data.fullData.statsAvailable !== "boolean") {
+        throw new Error("Invalid New Lobby Full Data: StatsAvailable is not boolean.");
+      }
+      this.statsAvailable = data.fullData.statsAvailable;
       this.lobbyStatic = data.fullData.lobbyStatic;
       this.region = data.fullData.region;
       this.slots = data.fullData.slots;
@@ -343,7 +349,10 @@ export class MicroLobby {
     );
     let lookup = this.cleanMapName(this.lobbyStatic.mapData.mapName);
     this.lookupName = lookup.mapName;
-    this.statsAvailable = lookup.statsAvailable;
+    this.statsAvailable =
+      data.statsAvailableOverride ??
+      data.fullData?.statsAvailable ??
+      lookup.statsAvailable;
     this.allPlayers = this.getAllPlayers(true);
     this.nonSpecPlayers = this.getAllPlayers(false);
   }
@@ -620,6 +629,7 @@ export class MicroLobby {
       teamListLookup: this.teamListLookup,
       chatMessages: this.chatMessages,
       playerData: this.#playerData,
+      statsAvailable: this.statsAvailable,
     };
   }
 
@@ -850,6 +860,7 @@ export interface MicroLobbyData {
   playerData: {
     [key: string]: PlayerData;
   };
+  statsAvailable: boolean;
 }
 
 export interface LobbyUpdates {
