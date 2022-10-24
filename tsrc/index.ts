@@ -69,6 +69,8 @@ const GameClientLobbyPayloadStaticSchema = {
     mapAuthor: { type: String, length: { min: 1, max: 32 }, required: true },
     description: { type: String, length: { min: 0, max: 256 }, required: false },
     suggested_players: { type: String, length: { min: 1, max: 32 }, required: true },
+    mapAllowsSD: { type: Boolean, required: true },
+    mapAllowsHD: { type: Boolean, required: true },
   },
   lobbyName: { type: String, length: { min: 1, max: 32 }, required: true },
   mapFlags: {
