@@ -4,8 +4,7 @@ const ZeroArraySchema = { type: Number, size: { min: 0, max: 24 }, required: tru
 const ZeroArraySchemaNotRequired = { type: Number, size: { min: 0, max: 24 } };
 const OneArraySchema = { type: Number, size: { min: 1, max: 25 }, required: true };
 const OneArraySchemaNotRequired = { type: Number, size: { min: 1, max: 25 } };
-export const BattleTagRegex =
-  /(^([A-zÀ-ú][A-zÀ-ú0-9]{2,11})|(^([а-яёА-ЯЁÀ-ú][а-яёА-ЯЁ0-9À-ú]{2,11})))(#[0-9]{4,8})$/;
+export const BattleTagRegex = /^[\p{L}\p{Mn}][\p{L}\p{Mn}0-9]{2,11}#[0-9]{4,8}+$/u;
 
 export const ChatMessageSchema = new Schema({
   name: { type: String, match: BattleTagRegex, required: true },

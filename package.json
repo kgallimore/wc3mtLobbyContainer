@@ -1,6 +1,6 @@
 {
   "name": "wc3mt-lobby-container",
-  "version": "1.1.0",
+  "version": "1.1.2",
   "description": "A container to hold data for Warcraft 3 Lobbies",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -16,7 +16,7 @@
   "author": "Keith Gallimore",
   "license": "UNLICENSED",
   "devDependencies": {
-    "typescript": "^4.5.5"
+    "typescript": "^5.3.3"
   },
   "dependencies": {
     "validate": "^5.2.0"
