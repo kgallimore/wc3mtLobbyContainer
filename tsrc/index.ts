@@ -3,9 +3,8 @@ import Schema from "validate";
 const ZeroArraySchema = { type: Number, size: { min: 0, max: 24 }, required: true };
 const ZeroArraySchemaNotRequired = { type: Number, size: { min: 0, max: 24 } };
 const OneArraySchema = { type: Number, size: { min: 1, max: 25 }, required: true };
-const OneArraySchemaNotRequired = { type: Number, size: { min: 1, max: 25 } };
-export const BattleTagRegex = /^[\p{L}\p{Mn}][\p{L}\p{Mn}0-9]{2,11}#[0-9]{4,8}+$/u;
-
+export const BattleTagRegex =
+  /(^([A-zÀ-ú][A-zÀ-ú0-9]{2,12})|(^[\u3131-\uD79D][\u3131-\uD79D0-9]{2,12})|(^([а-яёА-ЯЁÀ-ú][а-яёА-ЯЁ0-9À-ú]{2,12})))(#[0-9]{4,8})$/giu;
 export const ChatMessageSchema = new Schema({
   name: { type: String, match: BattleTagRegex, required: true },
   message: { type: String, length: { min: 1, max: 255 }, required: true },
