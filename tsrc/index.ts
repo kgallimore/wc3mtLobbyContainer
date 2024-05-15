@@ -11,7 +11,7 @@ export const ChatMessageSchema = new Schema({
   time: { type: Number, length: { min: 0, max: Number.MAX_SAFE_INTEGER } },
 });
 
-export const RegionEnum = ["us", "eu", "usw"]
+export const RegionEnum = ["us", "eu", "usw", "kr"]
 
 export const ChatMessageArraySchema = new Schema({
   messages: { type: Array, each: ChatMessageSchema },
@@ -281,7 +281,6 @@ export class MicroLobby {
           if (copyMessage !== JSON.stringify(message)) {
             throw new Error("Invalid Data: Message Invalid: " + message);
           }
-          console.log(copyMessage, message);
         });
       } else {
         throw new Error("Invalid Data: Chat Messages Invalid type or missing.");
@@ -359,6 +358,10 @@ export class MicroLobby {
     this.nonSpecPlayers = this.getAllPlayers(false);
   }
 
+  logData(...args: any[]){
+    if(this.log) console.log(...args);
+  }
+
   updateLobbySlots(slots: Array<PlayerPayload>): {
     playerUpdates: PlayerPayload[];
     events: {
@@ -375,7 +378,7 @@ export class MicroLobby {
       if (
         PlayerPayloadSchema.validate(player, { strict: true, strip: false }).length > 0
       ) {
-        console.warn("Invalid Player Payload: ", player);
+        this.logData("Invalid Player Payload: ", player);
         return;
       }
       if (JSON.stringify(this.slots[player.slot]) !== JSON.stringify(player)) {
@@ -391,7 +394,7 @@ export class MicroLobby {
       events = this.ingestUpdate({ playerPayload: playerUpdates });
       return { playerUpdates, events };
     } else {
-      if (this.log) console.log("No player updates");
+      this.logData("No player updates");
       return { playerUpdates, events };
     }
   }
@@ -441,7 +444,7 @@ export class MicroLobby {
               !this.allPlayers.includes(newPayload.name) &&
               !this.#playerData[newPayload.name]
             ) {
-              if (this.log) console.log("New Player: " + newPayload.name);
+              this.logData("New Player: " + newPayload.name);
               events.push({ playerJoined: newPayload });
               this.#playerData[newPayload.name] = {
                 joinedAt: Date.now(),
@@ -449,8 +452,7 @@ export class MicroLobby {
               };
             } else if (this.slots[newPayload.slot].playerRegion) {
               if (events.filter((event) => event.playersSwapped).length === 0) {
-                if (this.log)
-                  console.log(
+                  this.logData(
                     "Players swapped: ",
                     newPayload.name,
                     this.slots[newPayload.slot].name,
@@ -469,7 +471,7 @@ export class MicroLobby {
                 });
               }
             } else {
-              console.log("Player Moved: ", {
+              this.logData("Player Moved: ", {
                 from: this.playerToSlot(newPayload.name),
                 to: newPayload.slot,
                 name: newPayload.name,
@@ -492,7 +494,7 @@ export class MicroLobby {
       for (const player of this.allPlayers) {
         if (!this.getAllPlayers(true).includes(player)) {
           isUpdated = true;
-          if (this.log) console.log("Player left: " + player);
+          this.logData("Player left: " + player);
           events.push({ playerLeft: player });
           delete this.#playerData[player];
         }
@@ -518,8 +520,7 @@ export class MicroLobby {
               JSON.stringify(update.playerData.extraData);
             this.#playerData[update.playerData.name].extra = update.playerData.extraData;
           } else if (this.getAllPlayers(true).includes(update.playerData.name)) {
-            if (this.log)
-              console.warn(
+              this.logData(
                 "Player Data Update for non-existent player, but they are in lobby: " +
                   update.playerData.name
               );
@@ -690,8 +691,7 @@ export class MicroLobby {
     if (slot) {
       return slot.slot;
     } else {
-      console.log(this.slots);
-      console.warn("Player not found in slot list: " + player);
+      this.logData("Player not found in slot list: " + player);
       return -1;
     }
   }
