@@ -11,6 +11,8 @@ export const ChatMessageSchema = new Schema({
   time: { type: Number, length: { min: 0, max: Number.MAX_SAFE_INTEGER } },
 });
 
+export const RegionEnum = ["us", "eu", "usw", "kr"]
+
 export const ChatMessageArraySchema = new Schema({
   messages: { type: Array, each: ChatMessageSchema },
 });
@@ -34,7 +36,7 @@ export const PlayerPayloadSchema = new Schema({
   slotTypeChangeEnabled: { type: Boolean, required: true },
   id: { type: Number, size: { min: 0, max: 255 }, required: true },
   name: { type: String, length: { min: 0, max: 32 } },
-  playerRegion: { type: String, enum: ["us", "eu", "usw", ""] },
+  playerRegion: { type: String, enum: [...RegionEnum, ""] },
   playerGateway: { type: Number, required: true },
   color: ZeroArraySchema,
   colorChangeEnabled: { type: Boolean, required: true },
@@ -50,7 +52,7 @@ const GameClientLobbyPayloadStaticSchema = {
   playerHost: {
     type: String,
     match: BattleTagRegex,
-    required: true,
+    required: false,
   },
   maxTeams: { type: Number, size: { min: 1, max: 24 }, required: true },
   isCustomForces: { type: Boolean, required: true },
@@ -169,7 +171,7 @@ export class MicroLobby {
     this.log = log;
     if (data.payload) {
       // Check the region
-      if (!data.region || !["us", "eu", "usw"].includes(data.region)) {
+      if (!data.region || !RegionEnum.includes(data.region)) {
         throw new Error("Invalid region");
       }
       // Check all the static data
@@ -189,6 +191,7 @@ export class MicroLobby {
         );
       }
       if (Object.values(data.payload.players).find((slot) => slot.isSelf) !== undefined) {
+        console.log("dataTest", data.payload.teamData.teams);
         let { teamData, availableTeamColors, players, availableColors, ...lobbyStatic } =
           data.payload;
         this.lobbyStatic = lobbyStatic;
@@ -237,11 +240,12 @@ export class MicroLobby {
           }
         });
       } else {
+        console.log("dataTest", data.payload.teamData.teams);
         throw new Error("Invalid New Lobby Payload Data.");
       }
     } else if (data.fullData) {
       // Check the region
-      if (!data.fullData.region || !["us", "eu", "usw"].includes(data.fullData.region)) {
+      if (!data.fullData.region || !RegionEnum.includes(data.fullData.region)) {
         throw new Error("Invalid region");
       }
       // Ensure slots are there and are valid
@@ -710,7 +714,7 @@ export class MicroLobby {
   }
 }
 
-export type Regions = "us" | "eu" | "usw";
+export type Regions = "us" | "eu" | "usw" | "kr";
 
 export type TeamTypes = "otherTeams" | "specTeams" | "playerTeams";
 
@@ -785,7 +789,7 @@ export interface PlayerPayload {
   id: number;
   name: string | "Computer (Easy)" | "Computer (Normal)" | "Computer (Insane)";
   //Regions tbd, usw might replace us
-  playerRegion: Regions | "usw" | "";
+  playerRegion: Regions | "";
   //what are gateways?
   playerGateway: number | -1;
   color: SlotNumbers;
@@ -799,7 +803,7 @@ export interface PlayerPayload {
 
 export interface GameClientLobbyPayloadStatic {
   isHost: boolean;
-  playerHost: string;
+  playerHost?: string;
   maxTeams: number;
   isCustomForces: boolean;
   isCustomPlayers: boolean;
