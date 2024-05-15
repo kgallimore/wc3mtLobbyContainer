@@ -11,7 +11,7 @@ export const ChatMessageSchema = new Schema({
   time: { type: Number, length: { min: 0, max: Number.MAX_SAFE_INTEGER } },
 });
 
-export const RegionEnum = ["us", "eu", "usw", "kr"]
+export const RegionEnum = ["us", "eu", "usw"]
 
 export const ChatMessageArraySchema = new Schema({
   messages: { type: Array, each: ChatMessageSchema },
@@ -187,11 +187,10 @@ export class MicroLobby {
           );
         });
         throw new Error(
-          "Invalid Data: " + Object.entries(JSON.stringify(dataTest[0])).join(", ")
+          "Invalid Data: " + JSON.stringify(dataTest.join("\n"))
         );
       }
       if (Object.values(data.payload.players).find((slot) => slot.isSelf) !== undefined) {
-        console.log("dataTest", data.payload.teamData.teams);
         let { teamData, availableTeamColors, players, availableColors, ...lobbyStatic } =
           data.payload;
         this.lobbyStatic = lobbyStatic;
@@ -240,7 +239,6 @@ export class MicroLobby {
           }
         });
       } else {
-        console.log("dataTest", data.payload.teamData.teams);
         throw new Error("Invalid New Lobby Payload Data.");
       }
     } else if (data.fullData) {
@@ -330,7 +328,7 @@ export class MicroLobby {
           );
         });
         throw new Error(
-          "Invalid New Lobby Full Data: " + Object.entries(dataTest[0]).join(", ")
+          "Invalid New Lobby Full Data: " + JSON.stringify(dataTest.join("\n"))
         );
       }
       data.fullData.statsAvailable = data.fullData.statsAvailable ?? false;
